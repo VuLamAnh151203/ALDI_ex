@@ -304,7 +304,7 @@ args.Ks = eval(args.Ks)
 # =====================
 # Environment & seed
 # =====================
-os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
+# os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu_id)
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
 tf.random.set_seed(args.seed)
@@ -435,6 +435,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
 
         if va_metric['ndcg'][0] > best_va:
             best_va = va_metric['ndcg'][0]
+            print("epoch",epoch, "metrics",va_metric)
             # model.save_weights(save_path + ".weights.h5")
             ckpt = tf.train.Checkpoint(model=model)
             ckpt.write(save_path)
@@ -445,6 +446,5 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         if patience_count > args.patience:
             break
 
-        print("epoch",epoch, "metrics",va_metric)
 
 timer.logging(f"Finished training at epoch {epoch}")
