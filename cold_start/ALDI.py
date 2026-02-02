@@ -395,8 +395,6 @@ class ALDI(tf.keras.Model):
     # =====================
     def get_user_emb(self, user_emb):
         mapped = self.map_user(user_emb, training=False)
-        print(mapped.shape)
-        print(user_emb.shape)
         return np.stack([user_emb, mapped.numpy()], axis=0)
 
     def get_item_emb(self, item_content, item_emb, warm_item_ids, cold_item_ids):
