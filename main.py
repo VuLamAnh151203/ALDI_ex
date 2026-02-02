@@ -362,13 +362,13 @@ timer.logging('Finished computing item frequencies.')
 # =====================
 exclude_val_cold = utils.get_exclude_pair_count(
     para_dict['pos_user_nb'],
-    para_dict['cold_val_user'][:args.n_test_user],
+    para_dict['cold_val_user'],
     para_dict['cold_val_user_nb'],
     args.test_batch_us
 )
 exclude_test_cold = utils.get_exclude_pair_count(
     para_dict['pos_user_nb'],
-    para_dict['cold_test_user'][:args.n_test_user],
+    para_dict['cold_test_user'],
     para_dict['cold_test_user_nb'],
     args.test_batch_us
 )
@@ -427,7 +427,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
             model.get_ranked_rating,
             lambda u, i: model.get_user_rating(u, i, gen_user_emb, gen_item_emb),
             ts_nei=para_dict['cold_val_user_nb'],
-            ts_user=para_dict['cold_val_user'][:args.n_test_user],
+            ts_user=para_dict['cold_val_user'],
             item_array=para_dict['item_array'],
             masked_items=para_dict['warm_item'],
             exclude_pair_cnt=exclude_val_cold
