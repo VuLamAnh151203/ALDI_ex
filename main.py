@@ -395,6 +395,16 @@ os.makedirs(save_dir, exist_ok=True)
 save_path = save_dir + args.dataset + '-' + args.model
 
 from tqdm import tqdm
+
+ckpt = tf.train.Checkpoint(
+    model=model,
+)
+
+ckpt_manager = tf.train.CheckpointManager(
+    ckpt,
+    directory=save_path,  # this must be a FOLDER
+    max_to_keep=1
+)
 for epoch in tqdm(range(1, args.max_epoch + 1)):
     train_input = utils.bpr_neg_samp(
         para_dict['warm_user'],
@@ -437,8 +447,9 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
             best_va = va_metric['ndcg'][0]
             print("epoch",epoch, "metrics",va_metric)
             # model.save_weights(save_path + ".weights.h5")
-            ckpt = tf.train.Checkpoint(model=model)
-            ckpt.write(save_path)
+            # ckpt = tf.train.Checkpoint(model=model)
+            # ckpt.write(save_path)
+            ckpt_manager.save()
             patience_count = 0
         else:
             patience_count += 1
