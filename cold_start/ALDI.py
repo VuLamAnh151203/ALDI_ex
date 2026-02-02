@@ -284,7 +284,7 @@ class ALDI(tf.keras.Model):
             x = layer(x, training=training)
         return self.item_out(x)
 
-    def     map_user(self, user_emb, training=False):
+    def map_user(self, user_emb, training=False):
         x = user_emb
         for layer in self.user_layers:
             x = layer(x, training=training)
