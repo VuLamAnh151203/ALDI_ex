@@ -396,36 +396,6 @@ save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}")
 os.makedirs(save_path, exist_ok=True)
 from tqdm import tqdm
 
-# ckpt = tf.train.Checkpoint(
-#     model=model,
-# )
-
-# ckpt_manager = tf.train.CheckpointManager(
-#     ckpt,
-#     directory=save_path,  # this must be a FOLDER
-#     max_to_keep=1
-# )
-
-# model = eval(f"cold_start.{args.model}")(
-#     args,
-#     emb.shape[-1],
-#     content_data.shape[-1]
-# )
-
-# BUILD THE MODEL FIRST
-# dummy_item = tf.zeros((4, content_data.shape[-1]))
-# dummy_user = tf.zeros((4, emb.shape[-1]))
-# _ = model.map_item(dummy_item, training=True)
-# _ = model.map_user(dummy_user, training=True)
-# print("Model built successfully")
-
-# Now create checkpoint
-ckpt = tf.train.Checkpoint(model=model)  # Include optimizer!
-ckpt_manager = tf.train.CheckpointManager(
-    ckpt,
-    directory=save_path,
-    max_to_keep=1
-)
 for epoch in tqdm(range(1, args.max_epoch + 1)):
     train_input = utils.bpr_neg_samp(
         para_dict['warm_user'],
@@ -467,10 +437,10 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         if va_metric['ndcg'][0] > best_va:
             best_va = va_metric['ndcg'][0]
             print("epoch",epoch, "metrics",va_metric)
-            # model.save_weights(save_path + ".weights.h5")
+            model.save_weights(os.path.join(save_path,"best_weights.h5"))
             # ckpt = tf.train.Checkpoint(model=model)
             # ckpt.write(save_path)
-            ckpt_manager.save()
+            # ckpt_manager.save()
             patience_count = 0
         else:
             patience_count += 1

@@ -422,3 +422,15 @@ class ALDI(tf.keras.Model):
     def get_ranked_rating(self, ratings, k):
         values, indices = tf.math.top_k(ratings, k=k)
         return values.numpy(), indices.numpy()
+    
+    def build(self, input_shape=None):
+        self.map_item(tf.zeros((1, self.content_dim)))
+        self.map_user(tf.zeros((1, self.emb_dim)))
+        self.built = True
+
+    def call(self, inputs, training=False):
+        item_content, user_emb = inputs
+        return (
+            self.map_item(item_content, training),
+            self.map_user(user_emb, training)
+        )
