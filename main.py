@@ -325,7 +325,7 @@ ndcg.init(args)
 # =====================
 dataset_path = os.path.join(args.datadir, args.dataset)
 
-content_data = np.load(f"{dataset_path}/{args.dataset}_item_content.npy")
+content_data = np.load(f"{dataset_path}/Beauty_item_content.npy")
 para_dict = pickle.load(open(dataset_path + '/convert_dict.pkl', 'rb'))
 train_data = pd.read_csv(dataset_path + '/warm_emb.csv', dtype=np.int64).values
 
