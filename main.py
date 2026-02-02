@@ -392,8 +392,8 @@ patience_count = 0
 
 save_dir = './cold_start/model_save/'
 os.makedirs(save_dir, exist_ok=True)
-save_path = save_dir + args.dataset + '-' + args.model
-
+save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}")
+os.makedirs(save_path, exist_ok=True)
 from tqdm import tqdm
 
 # ckpt = tf.train.Checkpoint(
@@ -413,14 +413,14 @@ from tqdm import tqdm
 # )
 
 # BUILD THE MODEL FIRST
-dummy_item = tf.zeros((4, content_data.shape[-1]))
-dummy_user = tf.zeros((4, emb.shape[-1]))
-_ = model.map_item(dummy_item, training=True)
-_ = model.map_user(dummy_user, training=True)
-print("Model built successfully")
+# dummy_item = tf.zeros((4, content_data.shape[-1]))
+# dummy_user = tf.zeros((4, emb.shape[-1]))
+# _ = model.map_item(dummy_item, training=True)
+# _ = model.map_user(dummy_user, training=True)
+# print("Model built successfully")
 
 # Now create checkpoint
-ckpt = tf.train.Checkpoint(model=model, optimizer=model.optimizer)  # Include optimizer!
+ckpt = tf.train.Checkpoint(model=model)  # Include optimizer!
 ckpt_manager = tf.train.CheckpointManager(
     ckpt,
     directory=save_path,
