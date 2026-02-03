@@ -383,8 +383,6 @@ model = eval(f"cold_start.{args.model}")(
     content_data.shape[-1]
 )
 
-model.build()
-
 # =====================
 # Training
 # =====================
