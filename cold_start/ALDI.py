@@ -204,6 +204,238 @@
 #         return ranked_score, ranked_index
 
 
+# import numpy as np
+# import tensorflow as tf
+
+
+# # =====================
+# # Helper layers
+# # =====================
+# class DenseBN(tf.keras.layers.Layer):
+#     def __init__(self, units, reg, use_bn=False, activation=tf.nn.tanh):
+#         super().__init__()
+#         self.dense = tf.keras.layers.Dense(
+#             units,
+#             kernel_initializer=tf.keras.initializers.TruncatedNormal(stddev=0.01),
+#             kernel_regularizer=tf.keras.regularizers.l2(reg),
+#             bias_regularizer=tf.keras.regularizers.l2(reg)
+#         )
+#         self.use_bn = use_bn
+#         self.bn = tf.keras.layers.BatchNormalization() if use_bn else None
+#         self.activation = activation
+
+#     def call(self, x, training=False):
+#         x = self.dense(x)
+#         if self.use_bn:
+#             x = self.bn(x, training=training)
+#         return self.activation(x)
+
+
+# # =====================
+# # ALDI Model
+# # =====================
+# class ALDI(tf.keras.Model):
+#     def __init__(self, args, emb_dim, content_dim):
+#         super().__init__()
+
+#         self.emb_dim = emb_dim
+#         self.content_dim = content_dim
+#         self.lr = args.lr
+#         self.reg = args.reg
+#         self.alpha = args.alpha
+#         self.beta = args.beta
+#         self.gamma = args.gamma
+#         self.freq_coef_a = args.freq_coef_a
+#         self.freq_coef_M = args.freq_coef_M
+#         self.tws = args.tws
+
+#         self.transformed_layers = [2048,2048]
+
+#         # student networks
+#         self.item_layers = [
+#             DenseBN(h, self.reg, use_bn=True)
+#             for h in self.transformed_layers[:-1]
+#         ]
+#         self.user_layers = [
+#             DenseBN(h, self.reg, use_bn=True)
+#             for h in self.transformed_layers[:-1]
+#         ]
+
+#         self.item_out = tf.keras.layers.Dense(
+#             self.transformed_layers[-1],
+#             kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+#         )
+#         self.user_out = tf.keras.layers.Dense(
+#             self.transformed_layers[-1],
+#             kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+#         )
+
+#         self.optimizer = tf.keras.optimizers.Adam(self.lr)
+
+#         self.warm_item_ids = None
+#         self.cold_item_ids = None
+
+#     # =====================
+#     # Forward functions
+#     # =====================
+#     def map_item(self, item_content, training=False):
+#         x = item_content
+#         for layer in self.item_layers:
+#             x = layer(x, training=training)
+#         return self.item_out(x)
+
+#     def map_user(self, user_emb, training=False):
+#         x = user_emb
+#         for layer in self.user_layers:
+#             x = layer(x, training=training)
+#         return self.user_out(x)
+
+#     # =====================
+#     # Training
+#     # =====================
+#     @tf.function
+#     def train_step(self,
+#                    pos_item_content, pos_item_emb,
+#                    neg_item_content, neg_item_emb,
+#                    user_emb,
+#                    pos_item_freq, neg_item_freq):
+
+#         item_content = tf.concat([pos_item_content, neg_item_content], axis=0)
+#         true_item_emb = tf.concat([pos_item_emb, neg_item_emb], axis=0)
+#         item_freq = tf.concat([pos_item_freq, neg_item_freq], axis=0)
+
+#         # if self.tws:
+#         #     item_weight = tf.clip_by_value(
+#         #         tf.nn.tanh(self.freq_coef_a * item_freq),
+#         #         0.0,
+#         #         tf.math.tanh(self.freq_coef_M)
+#         #     )
+#         # else:
+#         #     item_weight = 1.0
+
+#         if self.tws:
+#             item_weight = tf.clip_by_value(
+#                 tf.nn.tanh(self.freq_coef_a * item_freq),
+#                 0.0,
+#                 tf.math.tanh(self.freq_coef_M)
+#             )
+#         else:
+#             # IMPORTANT: make it a tensor with correct shape
+#             item_weight = tf.ones_like(item_freq, dtype=tf.float32)
+
+
+#         with tf.GradientTape() as tape:
+#             # teacher
+#             pos_true, neg_true = tf.split(true_item_emb, 2, axis=0)
+
+#             # student
+#             gen_item = self.map_item(item_content, training=True)
+#             pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
+
+#             user_map = self.map_user(user_emb, training=True)
+
+#             # supervised loss
+#             student_pos = tf.reduce_sum(user_map * pos_gen, axis=1)
+#             student_neg = tf.reduce_sum(user_map * neg_gen, axis=1)
+#             student_dist = student_pos - student_neg
+
+#             sup_loss = tf.reduce_mean(
+#                 tf.nn.sigmoid_cross_entropy_with_logits(
+#                     logits=student_dist,
+#                     labels=tf.ones_like(student_dist)
+#                 )
+#             )
+
+#             # distillation (ranking)
+#             teacher_pos = tf.reduce_sum(user_emb * pos_true, axis=1)
+#             teacher_neg = tf.reduce_sum(user_emb * neg_true, axis=1)
+#             teacher_dist = teacher_pos - teacher_neg
+
+#             distill_rank = tf.reduce_mean(
+#                 item_weight[:tf.shape(student_dist)[0]] *
+#                 tf.nn.sigmoid_cross_entropy_with_logits(
+#                     logits=student_dist,
+#                     labels=tf.nn.sigmoid(teacher_dist)
+#                 )
+#             )
+
+#             # distillation (identity)
+#             student_ii = tf.reduce_sum(pos_gen * pos_gen, axis=1)
+#             student_ij = tf.reduce_mean(tf.matmul(pos_gen, neg_gen, transpose_b=True), axis=1)
+#             teacher_ii = tf.reduce_sum(pos_true * pos_true, axis=1)
+#             teacher_ij = tf.reduce_mean(tf.matmul(pos_true, neg_true, transpose_b=True), axis=1)
+
+#             distill_id = tf.reduce_mean(
+#                 tf.nn.sigmoid_cross_entropy_with_logits(
+#                     logits=student_ii - student_ij,
+#                     labels=tf.nn.sigmoid(teacher_ii - teacher_ij)
+#                 )
+#             )
+
+#             # rating difference
+#             rating_diff = tf.reduce_mean(
+#                 tf.abs(teacher_pos - student_pos) +
+#                 tf.abs(teacher_neg - student_neg)
+#             )
+
+#             total_loss = (
+#                 sup_loss +
+#                 self.alpha * distill_rank +
+#                 self.beta * distill_id +
+#                 self.gamma * rating_diff +
+#                 tf.add_n(self.losses)
+#             )
+
+#         grads = tape.gradient(total_loss, self.trainable_variables)
+#         self.optimizer.apply_gradients(zip(grads, self.trainable_variables))
+#         return total_loss
+
+#     # =====================
+#     # Inference helpers
+#     # =====================
+#     def get_user_emb(self, user_emb):
+#         mapped = self.map_user(user_emb, training=False)
+#         return np.stack([user_emb, mapped.numpy()], axis=0)
+
+#     def get_item_emb(self, item_content, item_emb, warm_item_ids, cold_item_ids):
+#         self.warm_item_ids = warm_item_ids
+#         self.cold_item_ids = cold_item_ids
+
+#         out = np.copy(item_emb)
+#         out[cold_item_ids] = self.map_item(
+#             item_content[cold_item_ids],
+#             training=False
+#         ).numpy()
+#         return out
+
+#     def get_user_rating(self, uids, iids, uemb, iemb):
+#         rating = np.zeros((len(uids), len(iids)), dtype=np.float32)
+
+#         rating[:, self.warm_item_ids] = (
+#             uemb[0][uids] @ iemb[self.warm_item_ids].T
+#         )
+#         rating[:, self.cold_item_ids] = (
+#             uemb[1][uids] @ iemb[self.cold_item_ids].T
+#         )
+#         return rating
+
+#     def get_ranked_rating(self, ratings, k):
+#         values, indices = tf.math.top_k(ratings, k=k)
+#         return values.numpy(), indices.numpy()
+    
+#     def build(self, input_shape=None):
+#         self.map_item(tf.zeros((1, self.content_dim)))
+#         self.map_user(tf.zeros((1, self.emb_dim)))
+#         self.built = True
+
+#     def call(self, inputs, training=False):
+#         item_content, user_emb = inputs
+#         return (
+#             self.map_item(item_content, training),
+#             self.map_user(user_emb, training)
+#         )
+
+
 import numpy as np
 import tensorflow as tf
 
@@ -232,7 +464,7 @@ class DenseBN(tf.keras.layers.Layer):
 
 
 # =====================
-# ALDI Model
+# ALDI Model (with feature gating)
 # =====================
 class ALDI(tf.keras.Model):
     def __init__(self, args, emb_dim, content_dim):
@@ -249,7 +481,20 @@ class ALDI(tf.keras.Model):
         self.freq_coef_M = args.freq_coef_M
         self.tws = args.tws
 
-        self.transformed_layers = [2048,2048]
+        # gate sparsity coefficient
+        self.gate_lambda = getattr(args, "gate_lambda", 1e-4)
+
+        self.transformed_layers = [2048, 2048]
+
+        # =====================
+        # Feature gate (NEW)
+        # =====================
+        self.item_gate = self.add_weight(
+            name="item_gate",
+            shape=(self.content_dim,),
+            initializer=tf.keras.initializers.Ones(),
+            trainable=True
+        )
 
         # student networks
         self.item_layers = [
@@ -263,11 +508,13 @@ class ALDI(tf.keras.Model):
 
         self.item_out = tf.keras.layers.Dense(
             self.transformed_layers[-1],
-            kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+            kernel_regularizer=tf.keras.regularizers.l2(self.reg),
+            bias=False   # IMPORTANT: avoid bias cheating
         )
         self.user_out = tf.keras.layers.Dense(
             self.transformed_layers[-1],
-            kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+            kernel_regularizer=tf.keras.regularizers.l2(self.reg),
+            bias=False
         )
 
         self.optimizer = tf.keras.optimizers.Adam(self.lr)
@@ -279,16 +526,22 @@ class ALDI(tf.keras.Model):
     # Forward functions
     # =====================
     def map_item(self, item_content, training=False):
-        x = item_content
+        # ---------- FEATURE MASKING ----------
+        gate = tf.sigmoid(self.item_gate)        # [content_dim]
+        x = item_content * gate                  # element-wise
+
         for layer in self.item_layers:
             x = layer(x, training=training)
-        return self.item_out(x)
+
+        x = self.item_out(x)
+        return tf.math.l2_normalize(x, axis=-1)  # stabilize geometry
 
     def map_user(self, user_emb, training=False):
         x = user_emb
         for layer in self.user_layers:
             x = layer(x, training=training)
-        return self.user_out(x)
+        x = self.user_out(x)
+        return tf.math.l2_normalize(x, axis=-1)
 
     # =====================
     # Training
@@ -304,15 +557,6 @@ class ALDI(tf.keras.Model):
         true_item_emb = tf.concat([pos_item_emb, neg_item_emb], axis=0)
         item_freq = tf.concat([pos_item_freq, neg_item_freq], axis=0)
 
-        # if self.tws:
-        #     item_weight = tf.clip_by_value(
-        #         tf.nn.tanh(self.freq_coef_a * item_freq),
-        #         0.0,
-        #         tf.math.tanh(self.freq_coef_M)
-        #     )
-        # else:
-        #     item_weight = 1.0
-
         if self.tws:
             item_weight = tf.clip_by_value(
                 tf.nn.tanh(self.freq_coef_a * item_freq),
@@ -320,9 +564,7 @@ class ALDI(tf.keras.Model):
                 tf.math.tanh(self.freq_coef_M)
             )
         else:
-            # IMPORTANT: make it a tensor with correct shape
             item_weight = tf.ones_like(item_freq, dtype=tf.float32)
-
 
         with tf.GradientTape() as tape:
             # teacher
@@ -334,7 +576,7 @@ class ALDI(tf.keras.Model):
 
             user_map = self.map_user(user_emb, training=True)
 
-            # supervised loss
+            # supervised ranking loss
             student_pos = tf.reduce_sum(user_map * pos_gen, axis=1)
             student_neg = tf.reduce_sum(user_map * neg_gen, axis=1)
             student_dist = student_pos - student_neg
@@ -378,11 +620,17 @@ class ALDI(tf.keras.Model):
                 tf.abs(teacher_neg - student_neg)
             )
 
+            # ---------- GATE SPARSITY (NEW) ----------
+            gate_loss = self.gate_lambda * tf.reduce_sum(
+                tf.abs(tf.sigmoid(self.item_gate))
+            )
+
             total_loss = (
                 sup_loss +
                 self.alpha * distill_rank +
                 self.beta * distill_id +
                 self.gamma * rating_diff +
+                gate_loss +
                 tf.add_n(self.losses)
             )
 
@@ -422,7 +670,7 @@ class ALDI(tf.keras.Model):
     def get_ranked_rating(self, ratings, k):
         values, indices = tf.math.top_k(ratings, k=k)
         return values.numpy(), indices.numpy()
-    
+
     def build(self, input_shape=None):
         self.map_item(tf.zeros((1, self.content_dim)))
         self.map_user(tf.zeros((1, self.emb_dim)))
