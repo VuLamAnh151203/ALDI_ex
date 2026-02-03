@@ -528,7 +528,7 @@ class ALDI(tf.keras.Model):
     def map_item(self, item_content, training=False):
         # ---------- FEATURE MASKING ----------
         # gate = tf.cast(tf.sigmoid(self.item_gate), item_content.dtype)
-        item_content = item_content.astype(np.float32)
+        item_content = tf.cast(item_content, tf.float32)
         gate = tf.sigmoid(self.item_gate)        # [content_dim]
         x = item_content * gate                  # element-wise
 
