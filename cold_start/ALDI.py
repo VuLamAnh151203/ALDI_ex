@@ -509,12 +509,12 @@ class ALDI(tf.keras.Model):
         self.item_out = tf.keras.layers.Dense(
             self.transformed_layers[-1],
             kernel_regularizer=tf.keras.regularizers.l2(self.reg),
-            bias=False   # IMPORTANT: avoid bias cheating
+            use_bias=False   # IMPORTANT: avoid bias cheating
         )
         self.user_out = tf.keras.layers.Dense(
             self.transformed_layers[-1],
             kernel_regularizer=tf.keras.regularizers.l2(self.reg),
-            bias=False
+            use_bias=False
         )
 
         self.optimizer = tf.keras.optimizers.Adam(self.lr)
