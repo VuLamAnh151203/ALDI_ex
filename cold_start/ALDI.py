@@ -257,10 +257,10 @@ class ALDI(tf.keras.Model):
         #     num_features=self.num_features
         # )
         
-        self.feature_attn = self.att_mlp = tf.keras.Sequential([
-            tf.keras.layers.Dense(256, activation='tanh'),
-            tf.keras.layers.Dense(self.num_features)
-        ])
+        self.feature_proj = tf.keras.layers.Dense(
+        self.feature_dim,
+        kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+    )
         # student networks
         self.item_layers = [
             DenseBN(h, self.reg, use_bn=True)
@@ -319,9 +319,8 @@ class ALDI(tf.keras.Model):
         """
 
         # project each feature
-        x = self.feature_attn(item_features)   # [B, F, d]
+        x = self.feature_proj(item_features)   # [B, F, d]
 
-        print(x.shape)
         if user_emb is None:
             # fallback: uniform attention
             alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
