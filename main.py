@@ -406,6 +406,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         para_dict['warm_item']
     )
 
+    print(content_data.shape)
     for beg in range(0, len(train_input) - args.batch_size, args.batch_size):
         batch = train_input[beg:beg + args.batch_size]
 
