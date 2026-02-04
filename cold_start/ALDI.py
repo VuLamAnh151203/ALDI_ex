@@ -401,8 +401,8 @@ class ALDI(tf.keras.Model):
             # pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
             user_map = self.map_user(user_emb, training=True)
-            user_map = tf.concat([user_map, user_map], axis=1)
-            gen_item = self.map_item(item_content,user_map, training=True)
+            user_map_dup = tf.concat([user_map, user_map], axis=0)
+            gen_item = self.map_item(item_content,user_map_dup, training=True)
             pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
             # supervised loss
