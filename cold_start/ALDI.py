@@ -262,12 +262,12 @@ class ALDI(tf.keras.Model):
     #     kernel_regularizer=tf.keras.regularizers.l2(self.reg)
     # )
 
-        self.feature_proj = tf.keras.layers.TimeDistributed(
-                tf.keras.layers.Dense(
-                    self.num_features,
-                    kernel_regularizer=tf.keras.regularizers.l2(self.reg)
-                )
-            )
+        # self.feature_proj = tf.keras.layers.TimeDistributed(
+        #         tf.keras.layers.Dense(
+        #             self.num_features,
+        #             kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+        #         )
+        #     )
         # student networks
         self.item_layers = [
             DenseBN(h, self.reg, use_bn=True)
@@ -326,7 +326,8 @@ class ALDI(tf.keras.Model):
         """
 
         # project each feature
-        x = self.feature_proj(item_features)   # [B, F, d]
+        # x = self.feature_proj(item_features)   # [B, F, d]
+        x = item_features
 
         if user_emb is None:
             # fallback: uniform attention

@@ -398,7 +398,6 @@ save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}_{args.content_t
 os.makedirs(save_path, exist_ok=True)
 from tqdm import tqdm
 
-print(content_data.shape)
 for epoch in tqdm(range(1, args.max_epoch + 1)):
     train_input = utils.bpr_neg_samp(
         para_dict['warm_user'],
