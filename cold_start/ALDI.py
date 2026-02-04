@@ -317,6 +317,7 @@ class ALDI(tf.keras.Model):
         # project each feature
         x = self.feature_attn(item_features)   # [B, F, d]
 
+        print(x.shape)
         if user_emb is None:
             # fallback: uniform attention
             alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
