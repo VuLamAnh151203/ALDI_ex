@@ -423,7 +423,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         gen_user_emb = model.get_user_emb(user_emb)
         gen_item_emb = model.get_item_emb(
             content_data, item_emb,
-            gen_user_emb,
+            gen_user_emb[1],
             para_dict['warm_item'], para_dict['cold_item']
         )
 

@@ -390,10 +390,13 @@ class ALDI(tf.keras.Model):
             pos_true, neg_true = tf.split(true_item_emb, 2, axis=0)
 
             # student
-            gen_item = self.map_item(item_content, training=True)
-            pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
+            # gen_item = self.map_item(item_content, training=True)
+            # pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
             user_map = self.map_user(user_emb, training=True)
+
+            gen_item = self.map_item(item_content,user_map[1], training=True)
+            pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
             # supervised loss
             student_pos = tf.reduce_sum(user_map * pos_gen, axis=1)
