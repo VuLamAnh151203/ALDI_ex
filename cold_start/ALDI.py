@@ -264,7 +264,7 @@ class ALDI(tf.keras.Model):
 
         self.feature_proj = tf.keras.layers.TimeDistributed(
                 tf.keras.layers.Dense(
-                    self.feature_dim,
+                    self.num_features,
                     kernel_regularizer=tf.keras.regularizers.l2(self.reg)
                 )
             )
