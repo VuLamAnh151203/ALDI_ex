@@ -235,11 +235,12 @@ class DenseBN(tf.keras.layers.Layer):
 # ALDI Model
 # =====================
 class ALDI(tf.keras.Model):
-    def __init__(self, args, emb_dim, content_dim):
+    def __init__(self, args, emb_dim, content_dim, num_features):
         super().__init__()
 
         self.emb_dim = emb_dim
         self.content_dim = content_dim
+        self.num_features = num_features
         self.lr = args.lr
         self.reg = args.reg
         self.alpha = args.alpha
@@ -250,6 +251,11 @@ class ALDI(tf.keras.Model):
         self.tws = args.tws
 
         self.transformed_layers = [2048,2048]
+
+        self.feature_attn = FeatureAttention(
+            d=self.content_dim,
+            num_features=self.num_features
+        )
 
         # student networks
         self.item_layers = [
@@ -275,20 +281,68 @@ class ALDI(tf.keras.Model):
         self.warm_item_ids = None
         self.cold_item_ids = None
 
+        self.att_mlp = tf.keras.Sequential([
+            tf.keras.layers.Dense(256, activation='tanh'),
+            tf.keras.layers.Dense(self.num_features)
+        ])
+
     # =====================
     # Forward functions
     # =====================
-    def map_item(self, item_content, training=False):
-        x = item_content
+    # def map_item(self, item_content, training=False):
+    #     x = item_content
+    #     for layer in self.item_layers:
+    #         x = layer(x, training=training)
+    #     return self.item_out(x)
+
+    # def map_item(self, item_content, user_emb = None, training=False):
+    #     """
+    #     item_content: [B, F, D]
+    #     """
+    #     # Feature aggregation
+    #     z_meta, attn = self.feature_attn(item_content)  # [B, D], [B, F]
+
+    #     x = z_meta
+    #     for layer in self.item_layers:
+    #         x = layer(x, training=training)
+
+    #     return self.item_out(x)
+
+    def map_item(self, item_features, user_emb=None, training=False):
+        """
+        item_features: [B, F, d]
+        user_emb:      [B, emb_dim]
+        """
+
+        # project each feature
+        x = self.feature_attn(item_features)   # [B, F, d]
+
+        if user_emb is None:
+            # fallback: uniform attention
+            alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
+        else:
+            # compute attention weights
+            att_logits = self.att_mlp(user_emb)         # [B, F]
+            alpha = tf.nn.softmax(att_logits, axis=-1)  # [B, F]
+
+        # weighted sum
+        alpha = tf.expand_dims(alpha, axis=-1)          # [B, F, 1]
+        z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
+
+        # existing MLP → CF
         for layer in self.item_layers:
-            x = layer(x, training=training)
-        return self.item_out(x)
+            z = layer(z, training=training)
+
+        return self.item_out(z)
+
 
     def map_user(self, user_emb, training=False):
         x = user_emb
         for layer in self.user_layers:
             x = layer(x, training=training)
         return self.user_out(x)
+    
+    
 
     # =====================
     # Training
@@ -397,13 +451,14 @@ class ALDI(tf.keras.Model):
         mapped = self.map_user(user_emb, training=False)
         return np.stack([user_emb, mapped.numpy()], axis=0)
 
-    def get_item_emb(self, item_content, item_emb, warm_item_ids, cold_item_ids):
+    def get_item_emb(self, item_content, item_emb, user_emb, warm_item_ids, cold_item_ids):
         self.warm_item_ids = warm_item_ids
         self.cold_item_ids = cold_item_ids
 
         out = np.copy(item_emb)
         out[cold_item_ids] = self.map_item(
             item_content[cold_item_ids],
+            user_emb,
             training=False
         ).numpy()
         return out
@@ -424,7 +479,8 @@ class ALDI(tf.keras.Model):
         return values.numpy(), indices.numpy()
     
     def build(self, input_shape=None):
-        self.map_item(tf.zeros((1, self.content_dim)))
+        # [B, F, D]
+        self.map_item(tf.zeros((1, self.num_features, self.content_dim)))
         self.map_user(tf.zeros((1, self.emb_dim)))
         self.built = True
 
@@ -434,6 +490,41 @@ class ALDI(tf.keras.Model):
             self.map_item(item_content, training),
             self.map_user(user_emb, training)
         )
+    
+    
+    
+class FeatureAttention(tf.keras.layers.Layer):
+    def __init__(self, d, num_features):
+        super().__init__()
+        self.num_features = num_features
+        self.query = self.add_weight(
+            shape=(d,),
+            initializer=tf.keras.initializers.RandomNormal(stddev=0.02),
+            trainable=True,
+            name="feature_query"
+        )
+        self.proj = tf.keras.layers.Dense(d, use_bias=False)
+
+    def call(self, H):
+        """
+        H: [B, F, D]
+        """
+        # [1, 1, D]
+        q = tf.reshape(self.query, (1, 1, -1))
+
+        # [B, F, D]
+        H_proj = self.proj(H)
+
+        # [B, F]
+        scores = tf.reduce_sum(H_proj * q, axis=-1)
+
+        # [B, F]
+        attn = tf.nn.softmax(scores, axis=1)
+
+        # [B, D]
+        z = tf.reduce_sum(H * tf.expand_dims(attn, -1), axis=1)
+        return z, attn
+
 
 
 # import numpy as np
