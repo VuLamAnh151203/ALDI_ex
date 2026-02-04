@@ -333,14 +333,18 @@ class ALDI(tf.keras.Model):
             alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
         else:
             # compute attention weights
+            print("Shape of user embedding:", user_emb.shape)
             att_logits = self.att_mlp(user_emb)         # [B, F]
+            print("shape of att logits:", att_logits.shape)
             alpha = tf.nn.softmax(att_logits, axis=-1)  # [B, F]
 
         # weighted sum
+
+        print(x.shape)
         
         alpha = tf.expand_dims(alpha, axis=-1)   
-        print(x.shape)
-        print(alpha.shape)       # [B, F, 1]
+        print("Shape of x: ", x.shape)
+        print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
         z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
         # existing MLP → CF
@@ -497,7 +501,7 @@ class ALDI(tf.keras.Model):
     
     def build(self, input_shape=None):
         # [B, F, D]
-        self.map_item(tf.zeros((1, self.num_features, self.content_dim)))
+        self.map_item(tf.zeros((1, self.num_features, self.content_dim)),tf.zeros((1, self.num_features, self.content_dim)))
         self.map_user(tf.zeros((1, self.emb_dim)))
         self.built = True
 
