@@ -276,6 +276,8 @@ parser.add_argument('--dataset', type=str, default="CiteULike")
 
 parser.add_argument('--embed_meth', type=str, default='bprmf')
 parser.add_argument('--embed_loss', type=str, default='BPR')
+parser.add_argument('--content_type', type=str, default='full')
+
 
 parser.add_argument('--lr', type=float, default=0.001)
 parser.add_argument('--batch_size', type=int, default=1024)
@@ -391,7 +393,7 @@ patience_count = 0
 
 save_dir = './cold_start/model_save/'
 os.makedirs(save_dir, exist_ok=True)
-save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}")
+save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}_{args.content_type}")
 os.makedirs(save_path, exist_ok=True)
 from tqdm import tqdm
 
