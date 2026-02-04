@@ -257,10 +257,17 @@ class ALDI(tf.keras.Model):
         #     num_features=self.num_features
         # )
         
-        self.feature_proj = tf.keras.layers.Dense(
-        self.num_features,
-        kernel_regularizer=tf.keras.regularizers.l2(self.reg)
-    )
+    #     self.feature_proj = tf.keras.layers.Dense(
+    #     self.num_features,
+    #     kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+    # )
+
+        self.feature_proj = tf.keras.layers.TimeDistributed(
+                tf.keras.layers.Dense(
+                    self.feature_dim,
+                    kernel_regularizer=tf.keras.regularizers.l2(self.reg)
+                )
+            )
         # student networks
         self.item_layers = [
             DenseBN(h, self.reg, use_bn=True)
@@ -394,7 +401,7 @@ class ALDI(tf.keras.Model):
             # pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
             user_map = self.map_user(user_emb, training=True)
-
+            user_map = tf.concat([user_map, user_map], axis=0)
             gen_item = self.map_item(item_content,user_map, training=True)
             pos_gen, neg_gen = tf.split(gen_item, 2, axis=0)
 
