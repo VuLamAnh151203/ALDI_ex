@@ -398,6 +398,7 @@ save_path = os.path.join(save_dir, f"{args.dataset}_{args.model}_{args.content_t
 os.makedirs(save_path, exist_ok=True)
 from tqdm import tqdm
 
+print(content_data.shape)
 for epoch in tqdm(range(1, args.max_epoch + 1)):
     train_input = utils.bpr_neg_samp(
         para_dict['warm_user'],
@@ -406,7 +407,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         para_dict['warm_item']
     )
 
-    print(content_data.shape)
+    # print(content_data.shape)
     for beg in range(0, len(train_input) - args.batch_size, args.batch_size):
         batch = train_input[beg:beg + args.batch_size]
 
