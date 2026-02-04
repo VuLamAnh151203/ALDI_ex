@@ -340,12 +340,13 @@ class ALDI(tf.keras.Model):
             alpha = tf.nn.softmax(att_logits, axis=-1)  # [B, F]
 
         # weighted sum
-
+        
         print(x.shape)
         
         alpha = tf.expand_dims(alpha, axis=-1)   
         print("Shape of x: ", x.shape)
         print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
+        alpha = tf.cast(alpha, x.dtype)
         z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
         # existing MLP → CF
