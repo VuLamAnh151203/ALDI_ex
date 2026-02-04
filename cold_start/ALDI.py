@@ -252,11 +252,15 @@ class ALDI(tf.keras.Model):
 
         self.transformed_layers = [2048,2048]
 
-        self.feature_attn = FeatureAttention(
-            d=self.content_dim,
-            num_features=self.num_features
-        )
-
+        # self.feature_attn = FeatureAttention(
+        #     d=self.content_dim,
+        #     num_features=self.num_features
+        # )
+        
+        self.feature_attn = self.att_mlp = tf.keras.Sequential([
+            tf.keras.layers.Dense(256, activation='tanh'),
+            tf.keras.layers.Dense(self.num_features)
+        ])
         # student networks
         self.item_layers = [
             DenseBN(h, self.reg, use_bn=True)
