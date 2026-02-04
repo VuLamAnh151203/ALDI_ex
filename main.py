@@ -382,7 +382,8 @@ exclude_test_cold = utils.get_exclude_pair_count(
 model = eval(f"cold_start.{args.model}")(
     args,
     emb.shape[-1],
-    content_data.shape[-1]
+    content_data.shape[-1],
+    content_data.shape[1]
 )
 
 # =====================
