@@ -439,10 +439,11 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
             masked_items=para_dict['warm_item'],
             exclude_pair_cnt=exclude_val_cold
         )
+        print("epoch",epoch, "metrics",va_metric)
 
         if va_metric['ndcg'][0] > best_va:
             best_va = va_metric['ndcg'][0]
-            print("epoch",epoch, "metrics",va_metric)
+            # print("epoch",epoch, "metrics",va_metric)
             model.build()
             model.save_weights(os.path.join(save_path,".weights.h5"))
             # ckpt = tf.train.Checkpoint(model=model)
