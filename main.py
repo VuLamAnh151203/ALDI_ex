@@ -443,7 +443,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         if va_metric['ndcg'][0] > best_va:
             best_va = va_metric['ndcg'][0]
             print("epoch",epoch, "metrics",va_metric)
-            # model.build()
+            model.build()
             model.save_weights(os.path.join(save_path,".weights.h5"))
             # ckpt = tf.train.Checkpoint(model=model)
             # ckpt.write(save_path)
