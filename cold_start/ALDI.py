@@ -550,7 +550,7 @@ class ALDI(tf.keras.Model):
     
     def build(self, input_shape=None):
         # [B, F, D]
-        self.map_item(tf.zeros((1, self.num_features, self.content_dim)),tf.zeros((1, self.num_features, self.content_dim)))
+        self.map_item(tf.zeros((1, self.num_features, self.content_dim)),tf.zeros((1, self.content_dim)))
         self.map_user(tf.zeros((1, self.emb_dim)))
         self.built = True
 
