@@ -369,9 +369,9 @@ class ALDI(tf.keras.Model):
             alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
         else:
             # compute attention weights
-            print("Shape of user embedding:", user_emb.shape)
+            # print("Shape of user embedding:", user_emb.shape)
             att_logits = self.att_mlp(user_emb)         # [B, F]
-            print("shape of att logits:", att_logits.shape)
+            # print("shape of att logits:", att_logits.shape)
             alpha = tf.nn.softmax(att_logits, axis=-1)  # [B, F]
 
         # weighted sum
@@ -381,14 +381,13 @@ class ALDI(tf.keras.Model):
         alpha = tf.expand_dims(alpha, axis = 0) # [1,N_u,F,1]
 
         x = tf.expand_dims(x, axis = 1)
-        print(alpha.shape)
-        print(x.shape)
 
         # print("Shape of x: ", x.shape)
         # print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
         # alpha = tf.cast(alpha, x.dtype)
         # z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
+        alpha = tf.cast(alpha, x.dtype)
         z = tf.reduce_sum(alpha * x, axis=1) # [N_i, N_u, F, d]
         print(z.shape)
         user_views = z.mean(axis = 2) # [N_i, N_u, d]
