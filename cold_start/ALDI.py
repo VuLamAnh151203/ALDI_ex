@@ -381,6 +381,8 @@ class ALDI(tf.keras.Model):
         alpha = tf.expand_dims(alpha, axis = 0)
 
         x = tf.expand_dims(alpha, axis = 1)
+        print(alpha.shape)
+        print(x.shape)
 
         # print("Shape of x: ", x.shape)
         # print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
