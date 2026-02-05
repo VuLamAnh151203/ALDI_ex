@@ -377,21 +377,25 @@ class ALDI(tf.keras.Model):
         # weighted sum
         
         
-        alpha = tf.expand_dims(alpha, axis=-1)   # [N_u,F,1]
-        alpha = tf.expand_dims(alpha, axis = 0) # [1,N_u,F,1]
+        # alpha = tf.expand_dims(alpha, axis=-1)   # [N_u,F,1]
+        # alpha = tf.expand_dims(alpha, axis = 0) # [1,N_u,F,1]
 
-        x = tf.expand_dims(x, axis = 1)
+        # x = tf.expand_dims(x, axis = 1)
 
         # print("Shape of x: ", x.shape)
         # print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
         # alpha = tf.cast(alpha, x.dtype)
         # z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
+        # alpha = tf.cast(alpha, x.dtype)
+        # z = tf.reduce_sum(alpha * x, axis=1) # [N_i, N_u, F, d]
+        # print(z.shape)
+        # user_views = z.mean(axis = 2) # [N_i, N_u, d]
+        # z = user_views.mean(axis = 1) # [N_i, d]
+
+        alpha_mean = tf.reduce_mean(alpha, axis=0)   # (F,)
         alpha = tf.cast(alpha, x.dtype)
-        z = tf.reduce_sum(alpha * x, axis=1) # [N_i, N_u, F, d]
-        print(z.shape)
-        user_views = z.mean(axis = 2) # [N_i, N_u, d]
-        z = user_views.mean(axis = 1) # [N_i, d]
+        z = tf.reduce_sum(x * alpha_mean[None, :, None], axis=1)
         # existing MLP → CF
         for layer in self.item_layers:
             z = layer(z, training=training)
