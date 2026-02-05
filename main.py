@@ -410,7 +410,7 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
     for beg in range(0, len(train_input) - args.batch_size, args.batch_size):
         batch = train_input[beg:beg + args.batch_size]
         print(batch)
-        break
+        # break
 
         # loss = model.train_step(
         #     content_data[batch[:, 1]],

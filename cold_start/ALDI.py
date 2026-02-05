@@ -341,7 +341,6 @@ class ALDI(tf.keras.Model):
 
         # weighted sum
         
-        print(x.shape)
         
         alpha = tf.expand_dims(alpha, axis=-1)   
         print("Shape of x: ", x.shape)
@@ -349,6 +348,48 @@ class ALDI(tf.keras.Model):
         alpha = tf.cast(alpha, x.dtype)
         z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
+        # existing MLP → CF
+        for layer in self.item_layers:
+            z = layer(z, training=training)
+
+        return self.item_out(z)
+    
+    def map_item_infer(self, item_features, user_emb=None, training=False):
+        """
+        item_features: [B, F, d]
+        user_emb:      [B, emb_dim]
+        """
+
+        # project each feature
+        # x = self.feature_proj(item_features)   # [B, F, d]
+        x = item_features
+
+        if user_emb is None:
+            # fallback: uniform attention
+            alpha = tf.ones((tf.shape(x)[0], self.num_features)) / self.num_features
+        else:
+            # compute attention weights
+            print("Shape of user embedding:", user_emb.shape)
+            att_logits = self.att_mlp(user_emb)         # [B, F]
+            print("shape of att logits:", att_logits.shape)
+            alpha = tf.nn.softmax(att_logits, axis=-1)  # [B, F]
+
+        # weighted sum
+        
+        
+        alpha = tf.expand_dims(alpha, axis=-1)   # [N_u,F,1]
+        alpha = tf.expand_dims(alpha, axis = 0)
+
+        x = tf.expand_dims(alpha, axis = 1)
+
+        # print("Shape of x: ", x.shape)
+        # print("Shape of alpha: ", alpha.shape)       # [B, F, 1]
+        # alpha = tf.cast(alpha, x.dtype)
+        # z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
+
+        z = tf.reduce_sum(alpha * x, axis=1) # [N_i, N_u, F, d]
+        user_views = z.mean(axis = 2) # [N_i, N_u, d]
+        z = user_views.mean(axis = 1) # [N_i, d]
         # existing MLP → CF
         for layer in self.item_layers:
             z = layer(z, training=training)
@@ -479,7 +520,7 @@ class ALDI(tf.keras.Model):
         self.cold_item_ids = cold_item_ids
 
         out = np.copy(item_emb)
-        out[cold_item_ids] = self.map_item(
+        out[cold_item_ids] = self.map_item_infer(
             item_content[cold_item_ids],
             user_emb,
             training=False
