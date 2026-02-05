@@ -377,7 +377,7 @@ class ALDI(tf.keras.Model):
         # weighted sum
         
         
-        alpha = tf.expand_dims(alpha, axis=-1)   # [N_u,F,1]
+        # alpha = tf.expand_dims(alpha, axis=-1)   # [N_u,F,1]
         alpha = tf.expand_dims(alpha, axis = 0)
 
         x = tf.expand_dims(alpha, axis = 1)
