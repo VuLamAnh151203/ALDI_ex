@@ -388,6 +388,7 @@ class ALDI(tf.keras.Model):
         # z = tf.reduce_sum(alpha * x, axis=1)            # [B, d]
 
         z = tf.reduce_sum(alpha * x, axis=1) # [N_i, N_u, F, d]
+        print(z.shape)
         user_views = z.mean(axis = 2) # [N_i, N_u, d]
         z = user_views.mean(axis = 1) # [N_i, d]
         # existing MLP → CF
