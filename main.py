@@ -412,15 +412,15 @@ for epoch in tqdm(range(1, args.max_epoch + 1)):
         # print(batch)
         # break
 
-        # loss = model.train_step(
-        #     content_data[batch[:, 1]],
-        #     item_emb[batch[:, 1]],
-        #     content_data[batch[:, 2]],
-        #     item_emb[batch[:, 2]],
-        #     user_emb[batch[:, 0]],
-        #     item_freq[batch[:, 1]],
-        #     item_freq[batch[:, 2]]
-        # )
+        loss = model.train_step(
+            content_data[batch[:, 1]],
+            item_emb[batch[:, 1]],
+            content_data[batch[:, 2]],
+            item_emb[batch[:, 2]],
+            user_emb[batch[:, 0]],
+            item_freq[batch[:, 1]],
+            item_freq[batch[:, 2]]
+        )
 
     if epoch >= args.val_start:
         gen_user_emb = model.get_user_emb(user_emb)
